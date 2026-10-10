@@ -16,6 +16,7 @@ const memoryUsers = [];
 const memoryAppointments = [];
 const memoryVitals = [];
 const memoryFeedbacks = [];
+const memoryPrescriptions = [];
 
 // 1. AUTH / LOGIN API
 app.post('/api/auth/login', async (req, res) => {
@@ -135,6 +136,38 @@ app.post('/api/feedback', async (req, res) => {
   return res.json({ success: true });
 });
 
+
+// 5. PRESCRIPTION API
+app.get('/api/prescriptions', async (req, res) => {
+  const { patientEmail } = req.query;
+  if (db && db.query) {
+    try {
+      const [rows] = await db.query('SELECT * FROM prescriptions WHERE patient_email = ?', [patientEmail]);
+      return res.json(rows);
+    } catch (err) {
+      console.warn('DB query failed, using in-memory prescriptions:', err.message);
+    }
+  }
+  const filtered = memoryPrescriptions.filter(p => !patientEmail || p.patient_email === patientEmail);
+  return res.json(filtered);
+});
+
+app.post('/api/prescriptions', async (req, res) => {
+  const { patientEmail, doctorName, prescription, medicines, notes } = req.body;
+  if (db && db.query) {
+    try {
+      await db.query(
+        'INSERT INTO prescriptions (patient_email, doctor_name, prescription, notes) VALUES (?, ?, ?, ?)',
+        [patientEmail, doctorName, prescription || JSON.stringify(medicines), notes || '']
+      );
+      return res.json({ success: true });
+    } catch (err) {
+      console.warn('DB query failed, storing prescription in memory:', err.message);
+    }
+  }
+  memoryPrescriptions.push({ id: Date.now(), patient_email: patientEmail, doctor_name: doctorName, prescription: prescription || medicines, notes, created_at: new Date() });
+  return res.json({ success: true });
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
