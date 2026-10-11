@@ -72,6 +72,10 @@ app.post('/api/vitals', (req, res) => {
   return res.json({ success: true });
 });
 
+// GET FEEDBACK API
+app.get('/api/feedback', (req, res) => {
+  return res.json(memoryFeedbacks);
+});
 // 4. FEEDBACK API
 app.post('/api/feedback', (req, res) => {
   const { patientEmail, rating, notes } = req.body;
